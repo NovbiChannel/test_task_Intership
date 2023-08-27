@@ -42,7 +42,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.3"
+        kotlinCompilerExtensionVersion = "1.5.2"
     }
     packaging {
         resources {
@@ -56,39 +56,65 @@ dependencies {
     val navVersion = "2.7.1"
     val realmVersion = "1.10.0"
     val kTorVersion = "2.3.3"
+    val composeVersion = "1.5.0"
 
+    // AndroidX Core KTX
     implementation("androidx.core:core-ktx:1.10.1")
+
+    // AndroidX Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
+
+    // AndroidX Activity Compose
     implementation("androidx.activity:activity-compose:1.7.2")
-    implementation(platform("androidx.compose:compose-bom:2023.03.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation ("androidx.navigation:navigation-runtime-ktx:2.7.1")
+
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.compose.ui:ui:$composeVersion")
+    implementation("androidx.compose.ui:ui-graphics:$composeVersion")
+    implementation("androidx.compose.ui:ui-tooling-preview:$composeVersion")
+
+    // Jetpack Compose Material
+    implementation("androidx.compose.material:material:$composeVersion")
+
+    // Jetpack Compose Foundation
+    implementation("androidx.compose.foundation:foundation:$composeVersion")
+
+    // Jetpack Navigation
+    implementation("androidx.navigation:navigation-runtime-ktx:$navVersion")
+
+    // Unit Testing and AndroidX Test
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-    //Pager
-    implementation ("androidx.paging:paging-runtime-ktx:$pagingVersion")
-    implementation ("androidx.paging:paging-compose:$pagingVersion")
-    // Navigation
-    implementation ("androidx.navigation:navigation-compose:$navVersion")
-    //Realm
-    implementation ("io.realm.kotlin:library-base:$realmVersion")
-    implementation ("io.realm.kotlin:library-sync:$realmVersion")
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.2")
-    //Ktor
-    implementation ("io.ktor:ktor-client-core:$kTorVersion")
-    implementation ("io.ktor:ktor-client-android:$kTorVersion")
-    implementation ("io.ktor:ktor-client-serialization:$kTorVersion")
-    implementation ("io.ktor:ktor-client-logging:$kTorVersion")
+
+    // AndroidX Compose Test
+    androidTestImplementation(platform("androidx.compose:compose-bom:$composeVersion"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:$composeVersion")
+    debugImplementation("androidx.compose.ui:ui-tooling:$composeVersion")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:$composeVersion")
+
+    // Jetpack Paging
+    implementation("androidx.paging:paging-runtime-ktx:$pagingVersion")
+    implementation("androidx.paging:paging-compose:$pagingVersion")
+
+    // Jetpack Navigation Compose
+    implementation("androidx.navigation:navigation-compose:$navVersion")
+
+    // Realm
+    implementation("io.realm.kotlin:library-base:$realmVersion")
+    implementation("io.realm.kotlin:library-sync:$realmVersion")
+
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.2")
+
+    // Ktor
+    implementation("io.ktor:ktor-client-core:$kTorVersion")
+    implementation("io.ktor:ktor-client-android:$kTorVersion")
+    implementation("io.ktor:ktor-client-serialization:$kTorVersion")
+    implementation("io.ktor:ktor-client-logging:$kTorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$kTorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$kTorVersion")
-    //Coil Image
-    implementation ("io.coil-kt:coil-compose:1.4.0")
+
+    // Coil Image
+    implementation("com.google.accompanist:accompanist-coil:0.15.0")
 }

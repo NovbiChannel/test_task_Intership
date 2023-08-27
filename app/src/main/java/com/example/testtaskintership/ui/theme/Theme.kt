@@ -1,70 +1,90 @@
 package com.example.testtaskintership.ui.theme
 
-import android.app.Activity
-import android.os.Build
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.darkColors
+import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import com.example.testtaskintership.ui.theme.findComponentActivity as findComponentActivity1
 
-private val DarkColorScheme = darkColorScheme(
+private val DarkColorScheme = darkColors(
     primary = Purple80,
     secondary = PurpleGrey80,
-    tertiary = Pink80
+    surface = Pink80
 )
 
-private val LightColorScheme = lightColorScheme(
+private val LightColorScheme = lightColors(
     primary = Purple40,
     secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    surface = Pink40
 )
 
 @Composable
-fun TestTaskIntershipTheme(
+fun TestTaskInternshipTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    content: @Composable () -> Unit
+    content: @Composable (MaterialTheme: androidx.compose.material.MaterialTheme) -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val context = LocalContext.current
+    val colors = if (darkTheme) {
+        MaterialTheme.colors.copy(
+            primary = DarkColorScheme.primary,
+            primaryVariant = DarkColorScheme.primary,
+            secondary = DarkColorScheme.secondary
+        )
+    } else {
+        MaterialTheme.colors.copy(
+            primary = LightColorScheme.primary,
+            primaryVariant = LightColorScheme.primary,
+            secondary = LightColorScheme.secondary
+        )
+    }
+
+    val typography = MaterialTheme.typography
+    val view = LocalView.current
+    val coroutineScope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) {
+        var statusBarJob: Job? = null
+
+        // Запуск корутины должен причисляться к скоупу receiver
+        statusBarJob = coroutineScope.launch {
+            val window = context.findComponentActivity1()?.window
+            if (window != null) {
+                window.statusBarColor = colors.onPrimary.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
+                    !darkTheme
+            }
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+        // Отменяем задачу настроения статус-бара при изменении параметров
+        onDispose {
+            statusBarJob.cancel()
         }
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
+        colors = colors,
+        typography = typography,
+        content = { content(MaterialTheme) }
     )
 }
+
+private fun Context.findComponentActivity(): ComponentActivity? {
+    var curContext = this
+    while (curContext !is ComponentActivity && curContext is ContextWrapper) {
+        curContext = curContext.baseContext
+    }
+    return curContext as? ComponentActivity
+}
+
