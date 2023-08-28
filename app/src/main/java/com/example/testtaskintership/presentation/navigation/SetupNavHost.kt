@@ -12,13 +12,13 @@ sealed class Screens(val rout: String) {
 }
 
 @Composable
-fun SetupNavHost(navController: NavHostController, viewModel: MainViewModel) {
+fun SetupNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = Screens.MainScreen.rout
     ) {
         composable(route = Screens.MainScreen.rout) {
-            MainScreen(viewModel)
+            MainScreen()
         }
     }
 }

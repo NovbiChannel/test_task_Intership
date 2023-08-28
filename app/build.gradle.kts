@@ -82,6 +82,7 @@ dependencies {
     // Jetpack Navigation
     implementation("androidx.navigation:navigation-runtime-ktx:$navVersion")
 
+    //Jetpack Compose LiveData
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.5.0")
@@ -121,4 +122,5 @@ dependencies {
 
     // Coil Image
     implementation("com.google.accompanist:accompanist-coil:0.15.0")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.33.1-alpha")
 }

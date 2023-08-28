@@ -38,12 +38,13 @@ import com.example.testtaskintership.domain.model.MainDataModel
 import com.example.testtaskintership.domain.model.SecondaryDataModel
 import com.example.testtaskintership.presentation.viewmodels.MainViewModel
 import com.google.accompanist.coil.rememberCoilPainter
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel
 ) {
     val pagerState = rememberPagerState(
         initialPage = 0,
@@ -51,7 +52,7 @@ fun MainScreen(
     ) {
         2
     }
-    val rememberedViewModel = remember { viewModel }
+    val viewModel = remember { MainViewModel() }
     val scope = rememberCoroutineScope()
     Column {
         Column(
@@ -94,14 +95,26 @@ fun MainScreen(
                 }
             }
         ) { page ->
+            var refreshState = false
+            viewModel.isRefreshing.observeForever {
+                refreshState = it
+            }
             when (page) {
                 0 -> {
-                    val cameraState = rememberedViewModel.cameras.observeAsState()
-                    CamerasListScreen(items = cameraState)
+                    SwipeRefresh(
+                        state = rememberSwipeRefreshState(isRefreshing = refreshState),
+                        onRefresh = { viewModel.refreshCameras() }) {
+                        val cameraState = viewModel.cameras.observeAsState()
+                        CamerasListScreen(items = cameraState)
+                    }
                 }
                 1 -> {
-                    val doorsState = rememberedViewModel.doors.observeAsState()
-                    DoorsListScreen(items = doorsState)
+                    SwipeRefresh(
+                        state = rememberSwipeRefreshState(isRefreshing = refreshState),
+                        onRefresh = { viewModel.refreshDoors() }) {
+                        val doorsState = viewModel.doors.observeAsState()
+                        DoorsListScreen(items = doorsState)
+                    }
                 }
             }
         }

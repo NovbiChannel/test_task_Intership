@@ -14,8 +14,6 @@ import com.example.testtaskintership.presentation.viewmodels.MainViewModel
 import com.example.testtaskintership.ui.theme.TestTaskInternshipTheme
 
 class MainActivity : ComponentActivity() {
-
-    val viewModel by viewModels<MainViewModel>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -26,7 +24,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    SetupNavHost(navController = navController, viewModel)
+                    SetupNavHost(navController = navController)
                 }
             }
         }
