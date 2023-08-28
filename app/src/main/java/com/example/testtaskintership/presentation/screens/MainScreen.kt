@@ -1,11 +1,8 @@
 package com.example.testtaskintership.presentation.screens
 
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,17 +10,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.SwipeableState
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
-import androidx.compose.material.rememberSwipeableState
-import androidx.compose.material.swipeable
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
@@ -31,14 +22,15 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.testtaskintership.R
 import com.example.testtaskintership.data.api.ApiService
+import com.example.testtaskintership.domain.model.Camera
 import com.example.testtaskintership.domain.model.Data
 import com.example.testtaskintership.domain.model.DataX
 import com.example.testtaskintership.domain.model.MainDataModel
@@ -46,7 +38,6 @@ import com.example.testtaskintership.domain.model.SecondaryDataModel
 import com.google.accompanist.coil.rememberCoilPainter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -85,19 +76,21 @@ fun MainScreen(navController: NavHostController) {
         }
         TabRow(
             pagerState.currentPage,
-            contentColor = Color.Black
+            contentColor = MaterialTheme.colors.secondary,
         ) {
             Tab(modifier = Modifier
-                    .background(MaterialTheme.colors.onPrimary),
+                    .background(MaterialTheme.colors.background),
                 text = { Text("Камеры") },
+                selectedContentColor = Color.Black,
                 selected = pagerState.currentPage == 0,
                 onClick = {
                     scope.launch { pagerState.animateScrollToPage(0) } }
             )
             Tab(
                 modifier = Modifier
-                    .background(MaterialTheme.colors.onPrimary),
+                    .background(MaterialTheme.colors.background),
                 text = { Text("Двери") },
+                selectedContentColor = Color.Black,
                 selected = pagerState.currentPage == 1,
                 onClick = { scope.launch { pagerState.animateScrollToPage(1) } }
             )
@@ -105,7 +98,7 @@ fun MainScreen(navController: NavHostController) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.pointerInput(Unit) {
-                detectDragGestures { change, dragAmount ->
+                detectDragGestures { change, _ ->
                     change.consume()
                 }
             }
@@ -121,17 +114,9 @@ fun MainScreen(navController: NavHostController) {
         }
     }
 }
-
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DoorsListScreen(items: State<SecondaryDataModel>) {
-    // Swipeable state
-    val swipeableState = rememberSwipeableState(initialValue = false)
-    val anchors = with(LocalDensity.current) {
-        mapOf(0f to false, -128.dp.toPx() to true)
-    }
-    val scope = rememberCoroutineScope()
-    val cornerRadius = 20.dp
+    val cornerRadius = 16.dp
 
     LazyColumn {
         item {
@@ -140,19 +125,13 @@ fun DoorsListScreen(items: State<SecondaryDataModel>) {
         items(items.value.data) { item ->
             Box(
                 modifier = Modifier
-                    .swipeable(
-                        state = swipeableState,
-                        anchors = anchors,
-                        thresholds = { _, _ -> FractionalThreshold(0.5f) },
-                        orientation = Orientation.Horizontal,
-                    )
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clip(RoundedCornerShape(cornerRadius))
                     .shadow(elevation = 4.dp, shape = RoundedCornerShape(cornerRadius))
-                    .background(MaterialTheme.colors.surface)
+                    .background(MaterialTheme.colors.primary)
             ) {
-                DoorItem(item = item, swipeableState = swipeableState, scope = scope)
+                DoorItem(item = item)
             }
         }
         item {
@@ -160,10 +139,8 @@ fun DoorsListScreen(items: State<SecondaryDataModel>) {
         }
     }
 }
-
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun DoorItem(item: DataX, swipeableState: SwipeableState<Boolean>, scope: CoroutineScope) {
+fun DoorItem(item: DataX) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(modifier = Modifier.fillMaxWidth()) {
             val painter = rememberCoilPainter(
@@ -176,6 +153,101 @@ fun DoorItem(item: DataX, swipeableState: SwipeableState<Boolean>, scope: Corout
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = item.name,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
+                    .align(Alignment.CenterStart)
+            )
+            IconButton(
+                onClick = { /*TODO*/ },
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(end = 16.dp)
+                    .align(Alignment.CenterEnd)
+            ) {
+                val icon = painterResource(id = R.drawable.ic_lock_24dp)
+                Image(
+                    painter = icon,
+                    contentDescription = "lock icon"
+                )
+            }
+        }
+    }
+}
+@Composable
+fun CamerasListScreen(items: State<MainDataModel>) {
+    val cornerRadius = 16.dp
+    val groupedCameras = items.value.data.cameras.groupBy { it.room }
+
+    LazyColumn {
+
+        this.items(items.value.data.room) { room ->
+            // Проверяем, есть ли камеры в комнате
+            if (groupedCameras[room]?.isNotEmpty() == true) {
+                // Показываем текст с названием комнаты
+                Text(
+                    text = room,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                )
+            }
+            groupedCameras[room]?.let { cameras ->
+                cameras.forEach { camera ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(cornerRadius))
+                            .shadow(elevation = 4.dp, shape = RoundedCornerShape(cornerRadius))
+                            .background(MaterialTheme.colors.primary)
+                    ) {
+                        CameraItem(item = camera)
+                    }
+                }
+            }
+        }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+@Composable
+fun CameraItem(item: Camera) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+        ) {
+            val painter = rememberCoilPainter(
+                request = item.snapshot,
+                fadeIn = true,
+            )
+            Image(
+                painter = painter,
+                contentDescription = "camera snapshot",
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (item.rec) {
+                val recIcon = painterResource(id = R.drawable.ic_rec_24dp)
+                Image(
+                    painter = recIcon,
+                    contentDescription = "recording icon",
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                )
+            }
 
             if (item.favorites) {
                 val favIcon = painterResource(id = R.drawable.ic_fav_true_24dp)
@@ -188,126 +260,45 @@ fun DoorItem(item: DataX, swipeableState: SwipeableState<Boolean>, scope: Corout
                 )
             }
         }
-
-        Text(
-            text = item.name,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier
-                .padding(top = 8.dp, start = 8.dp)
-                .align(Alignment.Start)
-        )
-    }
-
-    if (swipeableState.currentValue) {
-        val animationSpec: AnimationSpec<Float> = TweenSpec()
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Transparent)
-                .padding(16.dp)
-                .clip(MaterialTheme.shapes.medium)
-                .clickable {
-                    scope.launch {
-                        swipeableState.animateTo(
-                            targetValue = false,
-                            anim = animationSpec
-                        )
-                    }
-                },
-            contentAlignment = Alignment.CenterEnd
+        Box(modifier =
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colors.primary)
         ) {
-            val iconId = if (item.favorites) R.drawable.ic_fav_true_24dp else R.drawable.ic_fav_false_24dp
-            val favIcon = painterResource(id = iconId)
-            FloatingActionButton(
-                onClick = { /* Toggle favorites */ },
-                modifier = Modifier.size(48.dp),
-                backgroundColor = MaterialTheme.colors.secondary,
-                contentColor = Color.White
-            ) {
-                Image(
-                    painter = favIcon,
-                    contentDescription = "favorites icon"
-                )
-            }
+            Text(
+                text = item.name,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
+                    .align(Alignment.CenterStart)
+            )
         }
     }
 }
+
+@Preview
 @Composable
-fun CamerasListScreen(items: State<MainDataModel>) {
-    val groupedCameras = items.value.data.cameras.groupBy { it.room }
-
-    LazyColumn {
-        this.items(items.value.data.room) { room ->
-            Text(
-                text = room,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
-            )
-
-            groupedCameras[room]?.let { cameras ->
-                cameras.forEach { camera ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colors.onPrimary)
-                            .padding(16.dp)
-                            .clip(MaterialTheme.shapes.medium),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(240.dp)
-                        ) {
-                            val painter = rememberCoilPainter(
-                                request = camera.snapshot,
-                                fadeIn = true,
-                            )
-                            Image(
-                                painter = painter,
-                                contentDescription = "camera snapshot",
-                                contentScale = ContentScale.FillWidth,
-                                modifier = Modifier.fillMaxSize()
-                            )
-
-                            if (camera.rec) {
-                                val recIcon = painterResource(id = R.drawable.ic_rec_24dp)
-                                Image(
-                                    painter = recIcon,
-                                    contentDescription = "recording icon",
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .padding(8.dp)
-                                )
-                            }
-
-                            if (camera.favorites) {
-                                val favIcon = painterResource(id = R.drawable.ic_fav_true_24dp)
-                                Image(
-                                    painter = favIcon,
-                                    contentDescription = "favorites icon",
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(8.dp)
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = camera.name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .padding(top = 8.dp, start = 8.dp)
-                                .align(Alignment.Start)
-                        )
-                    }
-                }
-            }
+fun DoorImagePreview() {
+    val service = ApiService.create()
+    val getDoors = produceState(
+        initialValue = SecondaryDataModel(emptyList(), false),
+        producer = {
+            value = service.getDoors()
         }
-    }
+    )
+    DoorsListScreen(items = getDoors)
+}
+
+@Preview
+@Composable
+fun CamerasImagePreview() {
+    val service = ApiService.create()
+    val getCameras = produceState(
+        initialValue = MainDataModel(Data(emptyList(), emptyList()), false), 
+        producer = {
+            value = service.getCameras()
+        }
+    )
+    CamerasListScreen(items = getCameras)
 }
