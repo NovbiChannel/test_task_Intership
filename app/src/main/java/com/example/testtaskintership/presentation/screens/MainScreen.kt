@@ -16,6 +16,7 @@ import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -35,32 +36,22 @@ import com.example.testtaskintership.domain.model.Data
 import com.example.testtaskintership.domain.model.DataX
 import com.example.testtaskintership.domain.model.MainDataModel
 import com.example.testtaskintership.domain.model.SecondaryDataModel
+import com.example.testtaskintership.presentation.viewmodels.MainViewModel
 import com.google.accompanist.coil.rememberCoilPainter
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(navController: NavHostController) {
-    val service = ApiService.create()
+fun MainScreen(
+    viewModel: MainViewModel
+) {
     val pagerState = rememberPagerState(
         initialPage = 0,
         initialPageOffsetFraction = 0f
     ) {
         2
     }
-    val getDoors = produceState(
-        initialValue = SecondaryDataModel(emptyList(), false),
-        producer = {
-            value = service.getDoors()
-        }
-    )
-    val getCameras = produceState(
-        initialValue = MainDataModel(Data(emptyList(), emptyList()), false),
-        producer = {
-            value = service.getCameras()
-        }
-    )
+    val rememberedViewModel = remember { viewModel }
     val scope = rememberCoroutineScope()
     Column {
         Column(
@@ -105,24 +96,26 @@ fun MainScreen(navController: NavHostController) {
         ) { page ->
             when (page) {
                 0 -> {
-                    CamerasListScreen(items = getCameras)
+                    val cameraState = rememberedViewModel.cameras.observeAsState()
+                    CamerasListScreen(items = cameraState)
                 }
                 1 -> {
-                    DoorsListScreen(items = getDoors)
+                    val doorsState = rememberedViewModel.doors.observeAsState()
+                    DoorsListScreen(items = doorsState)
                 }
             }
         }
     }
 }
 @Composable
-fun DoorsListScreen(items: State<SecondaryDataModel>) {
+fun DoorsListScreen(items: State<SecondaryDataModel?>) {
     val cornerRadius = 16.dp
 
     LazyColumn {
         item {
             Spacer(modifier = Modifier.height(8.dp))
         }
-        items(items.value.data) { item ->
+        items(items = items.value?.data ?: listOf()) { item ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -180,13 +173,14 @@ fun DoorItem(item: DataX) {
     }
 }
 @Composable
-fun CamerasListScreen(items: State<MainDataModel>) {
+fun CamerasListScreen(items: State<MainDataModel?>) {
     val cornerRadius = 16.dp
-    val groupedCameras = items.value.data.cameras.groupBy { it.room }
+    val camerasData = items.value?.data ?: Data(listOf(), listOf())
+    val groupedCameras = camerasData.cameras.groupBy { it.room }
 
     LazyColumn {
 
-        this.items(items.value.data.room) { room ->
+        this.items(camerasData.room) { room ->
             // Проверяем, есть ли камеры в комнате
             if (groupedCameras[room]?.isNotEmpty() == true) {
                 // Показываем текст с названием комнаты
@@ -287,7 +281,6 @@ fun DoorImagePreview() {
             value = service.getDoors()
         }
     )
-    DoorsListScreen(items = getDoors)
 }
 
 @Preview

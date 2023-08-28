@@ -5,19 +5,20 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.testtaskintership.presentation.screens.MainScreen
+import com.example.testtaskintership.presentation.viewmodels.MainViewModel
 
 sealed class Screens(val rout: String) {
     object MainScreen: Screens(rout = "main_screen")
 }
 
 @Composable
-fun SetupNavHost(navController: NavHostController) {
+fun SetupNavHost(navController: NavHostController, viewModel: MainViewModel) {
     NavHost(
         navController = navController,
         startDestination = Screens.MainScreen.rout
     ) {
         composable(route = Screens.MainScreen.rout) {
-            MainScreen(navController = navController)
+            MainScreen(viewModel)
         }
     }
 }
