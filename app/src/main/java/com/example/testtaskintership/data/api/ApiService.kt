@@ -9,11 +9,6 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.request.accept
-import io.ktor.client.request.request
-import io.ktor.http.ContentType
-import io.ktor.http.HttpMethod
-import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
@@ -33,17 +28,13 @@ interface ApiService {
                         json(Json {
                             prettyPrint = true
                             isLenient = true
-                        })
+                        }
+                        )
                     }
-//                    request {
-//                        if (method != HttpMethod.Get) contentType(ContentType.Application.Json)
-//                        accept(ContentType.Application.Json)
-//                    }
                 }
             )
         }
     }
-
 }
 
 object ApiRoutes {

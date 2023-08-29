@@ -12,7 +12,6 @@ import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.get
 import io.ktor.client.request.url
-import io.ktor.client.statement.HttpResponse
 
 class ApiServiceImpl(
     private val client: HttpClient

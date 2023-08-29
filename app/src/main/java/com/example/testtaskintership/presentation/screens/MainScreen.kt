@@ -1,20 +1,28 @@
 package com.example.testtaskintership.presentation.screens
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
+import androidx.compose.material.rememberSwipeableState
+import androidx.compose.material.swipeable
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.*
@@ -23,12 +31,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import com.example.testtaskintership.R
 import com.example.testtaskintership.data.api.ApiService
 import com.example.testtaskintership.domain.model.Camera
@@ -39,6 +47,7 @@ import com.example.testtaskintership.domain.model.SecondaryDataModel
 import com.example.testtaskintership.presentation.viewmodels.MainViewModel
 import com.google.accompanist.coil.rememberCoilPainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlinx.coroutines.launch
 
@@ -101,18 +110,14 @@ fun MainScreen(
             }
             when (page) {
                 0 -> {
-                    SwipeRefresh(
-                        state = rememberSwipeRefreshState(isRefreshing = refreshState),
-                        onRefresh = { viewModel.refreshCameras() }) {
-                        val cameraState = viewModel.cameras.observeAsState()
+                    val cameraState = viewModel.cameras.observeAsState()
+                    SwipeRefreshWrapper(refreshState, { viewModel.onRefresh() }) {
                         CamerasListScreen(items = cameraState)
                     }
                 }
                 1 -> {
-                    SwipeRefresh(
-                        state = rememberSwipeRefreshState(isRefreshing = refreshState),
-                        onRefresh = { viewModel.refreshDoors() }) {
-                        val doorsState = viewModel.doors.observeAsState()
+                    val doorsState = viewModel.doors.observeAsState()
+                    SwipeRefreshWrapper(refreshState, { viewModel.onRefresh() }) {
                         DoorsListScreen(items = doorsState)
                     }
                 }
@@ -122,21 +127,12 @@ fun MainScreen(
 }
 @Composable
 fun DoorsListScreen(items: State<SecondaryDataModel?>) {
-    val cornerRadius = 16.dp
-
     LazyColumn {
         item {
             Spacer(modifier = Modifier.height(8.dp))
         }
         items(items = items.value?.data ?: listOf()) { item ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(RoundedCornerShape(cornerRadius))
-                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(cornerRadius))
-                    .background(MaterialTheme.colors.primary)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 DoorItem(item = item)
             }
         }
@@ -145,42 +141,127 @@ fun DoorsListScreen(items: State<SecondaryDataModel?>) {
         }
     }
 }
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun DoorItem(item: DataX) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            val painter = rememberCoilPainter(
-                request = item.snapshot,
-                fadeIn = true,
-            )
-            Image(
-                painter = painter,
-                contentDescription = "camera snapshot",
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxSize()
-            )
+fun DoorItem(
+    item: DataX
+) {
+    val cornerRadius = 16
+    val swipeableState = rememberSwipeableState(false)
+    val anchors = mapOf(0f to false, -150f to true)
+    //Main Box
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .fillMaxHeight()
+        .swipeable(
+            state = swipeableState,
+            anchors = anchors,
+            thresholds = { _, _ -> FractionalThreshold(0f) },
+            orientation = Orientation.Horizontal
+        )
+    ) {
+        val offsetX = swipeableState.offset.value.dp
+
+        // Animate padding and clip
+        val padding = animateDpAsState(targetValue = if (swipeableState.targetValue) 0.dp else 16.dp).value
+        val clipValue = animateIntAsState(targetValue = if (swipeableState.targetValue) 0 else cornerRadius).value.dp
+        val clipCorner = RoundedCornerShape(clipValue)
+        //Swipeable box
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = padding, vertical = 8.dp)
+            .clip(clipCorner)
+            .offset(x = offsetX)
+            .zIndex(1f)
+            .background(MaterialTheme.colors.primary)) {
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    val painter = rememberCoilPainter(
+                        request = item.snapshot,
+                        fadeIn = true,
+                    )
+                    Image(
+                        painter = painter,
+                        contentDescription = "camera snapshot",
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = item.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
+                            .align(Alignment.CenterStart)
+                    )
+
+                    IconButton(
+                        onClick = { /*TODO*/ },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(end = 16.dp)
+                            .align(Alignment.CenterEnd)
+                    ) {
+                        val icon = painterResource(id = R.drawable.ic_lock_24dp)
+                        Image(
+                            painter = icon,
+                            contentDescription = "lock icon"
+                        )
+                    }
+                }
+            }
         }
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = item.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
-                    .align(Alignment.CenterStart)
-            )
-            IconButton(
-                onClick = { /*TODO*/ },
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(end = 16.dp)
+        //Iteration button box
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.Center)
+                .zIndex(0f)
+        ) {
+            Row(
+                Modifier
                     .align(Alignment.CenterEnd)
             ) {
-                val icon = painterResource(id = R.drawable.ic_lock_24dp)
-                Image(
-                    painter = icon,
-                    contentDescription = "lock icon"
-                )
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.CenterVertically)
+                        .border(1.dp, MaterialTheme.colors.secondary, CircleShape)
+                ) {
+                    val editIcon = painterResource(id = R.drawable.ic_edit_24dp)
+                    Image(
+                        painter = editIcon,
+                        contentDescription = "edit icon"
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.CenterVertically)
+                        .border(1.dp, MaterialTheme.colors.secondary, CircleShape)
+                ) {
+                    val icon = if (item.favorites) R.drawable.ic_fav_true_24dp else R.drawable.ic_fav_false_24dp
+                    val favoriteIcon = painterResource(id = icon)
+                    Image(
+                        painter = favoriteIcon,
+                        contentDescription = "favorite icon"
+                    )
+                }
             }
         }
     }
@@ -281,6 +362,28 @@ fun CameraItem(item: Camera) {
                     .align(Alignment.CenterStart)
             )
         }
+    }
+}
+@Composable
+fun SwipeRefreshWrapper(
+    refreshState: Boolean,
+    onRefresh: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    SwipeRefresh(
+        state = rememberSwipeRefreshState(isRefreshing = refreshState),
+        onRefresh = onRefresh,
+        indicator = { state, trigger ->
+            SwipeRefreshIndicator(
+                state = state,
+                refreshTriggerDistance = trigger,
+                scale = true,
+                backgroundColor = MaterialTheme.colors.primary,
+                contentColor = MaterialTheme.colors.secondary
+            )
+        }
+    ) {
+        content()
     }
 }
 
