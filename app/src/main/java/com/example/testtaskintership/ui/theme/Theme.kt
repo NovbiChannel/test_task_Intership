@@ -27,8 +27,9 @@ import com.example.testtaskintership.ui.theme.findComponentActivity as findCompo
 private val LightColorScheme = lightColors(
     primary = White,
     secondary = Blue,
-    surface = Pink40,
-    background = Grey
+    surface = Black,
+    background = Grey,
+    onPrimary = TextColor
 )
 
 @Composable

@@ -14,6 +14,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
 import androidx.compose.material.IconButton
@@ -21,6 +22,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Tab
 import androidx.compose.material.TabRow
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.material.TextField
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.runtime.*
@@ -112,13 +115,13 @@ fun MainScreen(
                 0 -> {
                     val cameraState = viewModel.cameras.observeAsState()
                     SwipeRefreshWrapper(refreshState, { viewModel.onRefresh() }) {
-                        CamerasListScreen(items = cameraState)
+                        CamerasListScreen(items = cameraState, viewModel)
                     }
                 }
                 1 -> {
                     val doorsState = viewModel.doors.observeAsState()
                     SwipeRefreshWrapper(refreshState, { viewModel.onRefresh() }) {
-                        DoorsListScreen(items = doorsState)
+                        DoorsListScreen(items = doorsState, viewModel)
                     }
                 }
             }
@@ -126,14 +129,14 @@ fun MainScreen(
     }
 }
 @Composable
-fun DoorsListScreen(items: State<SecondaryDataModel?>) {
+fun DoorsListScreen(items: State<SecondaryDataModel?>, viewModel: MainViewModel) {
     LazyColumn {
         item {
             Spacer(modifier = Modifier.height(8.dp))
         }
         items(items = items.value?.data ?: listOf()) { item ->
             Box(modifier = Modifier.fillMaxWidth()) {
-                DoorItem(item = item)
+                DoorItem(item = item, viewModel)
             }
         }
         item {
@@ -144,7 +147,8 @@ fun DoorsListScreen(items: State<SecondaryDataModel?>) {
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DoorItem(
-    item: DataX
+    item: DataX,
+    viewModel: MainViewModel
 ) {
     val cornerRadius = 16
     val swipeableState = rememberSwipeableState(false)
@@ -161,7 +165,6 @@ fun DoorItem(
         )
     ) {
         val offsetX = swipeableState.offset.value.dp
-
         // Animate padding and clip
         val padding = animateDpAsState(targetValue = if (swipeableState.targetValue) 0.dp else 16.dp).value
         val clipValue = animateIntAsState(targetValue = if (swipeableState.targetValue) 0 else cornerRadius).value.dp
@@ -228,12 +231,15 @@ fun DoorItem(
                 .align(Alignment.Center)
                 .zIndex(0f)
         ) {
+            var showDialog by remember { mutableStateOf(false) }
+            var newName by remember { mutableStateOf("") }
             Row(
                 Modifier
                     .align(Alignment.CenterEnd)
             ) {
+
                 IconButton(
-                    onClick = { },
+                    onClick = { showDialog = true },
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.CenterVertically)
@@ -249,7 +255,7 @@ fun DoorItem(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { },
+                    onClick = {  },
                     modifier = Modifier
                         .size(48.dp)
                         .align(Alignment.CenterVertically)
@@ -263,12 +269,41 @@ fun DoorItem(
                     )
                 }
             }
+            if (showDialog) {
+                AlertDialog(
+                    backgroundColor = MaterialTheme.colors.background,
+                    contentColor = Color.Black,
+                    onDismissRequest = { showDialog = false },
+                    title = { Text(text = "Введите новое название", color = Color.Black) },
+                    text = {
+                        TextField(
+                            value = newName,
+                            onValueChange = { newName = it },
+                            label = { Text("Новое название", color = Color.Black) }
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.updateDoorInDb(item, newName)
+                            showDialog = false
+                        }) {
+                            Text("Подтвердить", color = MaterialTheme.colors.secondary)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDialog = false },
+                        ) {
+                            Text("Отмена", color = Color.Black)
+                        }
+                    }
+                )
+            }
         }
     }
 }
 @Composable
-fun CamerasListScreen(items: State<MainDataModel?>) {
-    val cornerRadius = 16.dp
+fun CamerasListScreen(items: State<MainDataModel?>, viewModel: MainViewModel) {
     val camerasData = items.value?.data ?: Data(listOf(), listOf())
     val groupedCameras = camerasData.cameras.groupBy { it.room }
 
@@ -292,12 +327,8 @@ fun CamerasListScreen(items: State<MainDataModel?>) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(cornerRadius))
-                            .shadow(elevation = 4.dp, shape = RoundedCornerShape(cornerRadius))
-                            .background(MaterialTheme.colors.primary)
                     ) {
-                        CameraItem(item = camera)
+                        CameraItem(item = camera, viewModel)
                     }
                 }
             }
@@ -307,60 +338,122 @@ fun CamerasListScreen(items: State<MainDataModel?>) {
         }
     }
 }
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun CameraItem(item: Camera) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+fun CameraItem(item: Camera, viewModel: MainViewModel) {
+    val cornerRadius = 16
+    val swipeableState = rememberSwipeableState(false)
+    val anchors = mapOf(0f to false, -80f to true)
+    //Main Box
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .swipeable(
+                state = swipeableState,
+                anchors = anchors,
+                thresholds = { _, _ -> FractionalThreshold(0f) },
+                orientation = Orientation.Horizontal
+            )
+    ) {
+        val offsetX = swipeableState.offset.value.dp
+        // Animate padding and clip
+        val padding = animateDpAsState(targetValue = if (swipeableState.targetValue) 0.dp else 16.dp).value
+        val clipValue = animateIntAsState(targetValue = if (swipeableState.targetValue) 0 else cornerRadius).value.dp
+        val clipCorner = RoundedCornerShape(clipValue)
+        //Swipeable Box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
+                .padding(horizontal = padding, vertical = 8.dp)
+                .clip(clipCorner)
+                .offset(x = offsetX)
+                .zIndex(1f)
+                .background(MaterialTheme.colors.primary)
         ) {
-            val painter = rememberCoilPainter(
-                request = item.snapshot,
-                fadeIn = true,
-            )
-            Image(
-                painter = painter,
-                contentDescription = "camera snapshot",
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            if (item.rec) {
-                val recIcon = painterResource(id = R.drawable.ic_rec_24dp)
-                Image(
-                    painter = recIcon,
-                    contentDescription = "recording icon",
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                //Box in the Image
+                Box(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                )
-            }
+                        .fillMaxWidth()
+                        .height(240.dp)
+                ) {
+                    val painter = rememberCoilPainter(
+                        request = item.snapshot,
+                        fadeIn = true,
+                    )
+                    Image(
+                        painter = painter,
+                        contentDescription = "camera snapshot",
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier.fillMaxSize()
+                    )
 
-            if (item.favorites) {
-                val favIcon = painterResource(id = R.drawable.ic_fav_true_24dp)
-                Image(
-                    painter = favIcon,
-                    contentDescription = "favorites icon",
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                )
+                    if (item.rec) {
+                        val recIcon = painterResource(id = R.drawable.ic_rec_24dp)
+                        Image(
+                            painter = recIcon,
+                            contentDescription = "recording icon",
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                        )
+                    }
+
+                    if (item.favorites) {
+                        val favIcon = painterResource(id = R.drawable.ic_fav_true_24dp)
+                        Image(
+                            painter = favIcon,
+                            contentDescription = "favorites icon",
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                        )
+                    }
+                }
+                //Box in the text
+                Box(modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colors.primary)
+                ) {
+                    Text(
+                        text = item.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
+                            .align(Alignment.CenterStart)
+                    )
+                }
             }
         }
-        Box(modifier =
-        Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colors.primary)
+        //Iteration button box
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.Center)
+                .zIndex(0f)
         ) {
-            Text(
-                text = item.name,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .padding(start = 16.dp, top = 32.dp, bottom = 32.dp)
-                    .align(Alignment.CenterStart)
-            )
+            Row(
+                Modifier
+                    .align(Alignment.CenterEnd)
+            ) {
+                IconButton(
+                    onClick = { viewModel.updateCameraInDb(item, !item.favorites) },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .align(Alignment.CenterVertically)
+                        .border(1.dp, MaterialTheme.colors.secondary, CircleShape)
+                ) {
+                    val icon = if (item.favorites) R.drawable.ic_fav_true_24dp else R.drawable.ic_fav_false_24dp
+                    val favoriteIcon = painterResource(id = icon)
+                    Image(
+                        painter = favoriteIcon,
+                        contentDescription = "favorite icon"
+                    )
+                }
+            }
         }
     }
 }
@@ -385,29 +478,4 @@ fun SwipeRefreshWrapper(
     ) {
         content()
     }
-}
-
-@Preview
-@Composable
-fun DoorImagePreview() {
-    val service = ApiService.create()
-    val getDoors = produceState(
-        initialValue = SecondaryDataModel(emptyList(), false),
-        producer = {
-            value = service.getDoors()
-        }
-    )
-}
-
-@Preview
-@Composable
-fun CamerasImagePreview() {
-    val service = ApiService.create()
-    val getCameras = produceState(
-        initialValue = MainDataModel(Data(emptyList(), emptyList()), false), 
-        producer = {
-            value = service.getCameras()
-        }
-    )
-    CamerasListScreen(items = getCameras)
 }

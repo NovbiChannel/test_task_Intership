@@ -7,6 +7,7 @@ import org.mongodb.kbson.ObjectId
 class CameraModelRealm: RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
+    var id: Int = 0
     var name: String = ""
     var rec: Boolean = false
     var favorites: Boolean = false
@@ -16,8 +17,15 @@ class CameraModelRealm: RealmObject {
 class DoorsModelRealm: RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
+    var id: Int = 0
     var name: String = ""
     var favorites: Boolean = false
     var room: String = ""
     var snapshot: String = ""
+}
+
+class RoomModelRealm: RealmObject {
+    @PrimaryKey
+    var _id: ObjectId = ObjectId.invoke()
+    var room: String = ""
 }

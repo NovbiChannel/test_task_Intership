@@ -1,5 +1,6 @@
 package com.example.testtaskintership.presentation.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.testtaskintership.data.api.ApiService
 import com.example.testtaskintership.data.local.model.CameraModelRealm
 import com.example.testtaskintership.data.local.model.DoorsModelRealm
+import com.example.testtaskintership.data.local.model.RoomModelRealm
 import com.example.testtaskintership.data.local.repositories.RealmRepository
 import com.example.testtaskintership.domain.model.Camera
 import com.example.testtaskintership.domain.model.Data
@@ -56,8 +58,14 @@ class MainViewModel : ViewModel() {
 
             try {
                 val camerasFromDb = realm.getCameras().first()
-                if (camerasFromDb.isNotEmpty()) {
-                    val dataModel = MainDataModel(Data(emptyList(), camerasFromDb.map { cameraModelRealmToCamera(it)}), true)
+                val roomsFromDb = realm.getRooms().first()
+                if (camerasFromDb.isNotEmpty() || roomsFromDb.isNotEmpty()) {
+                    val dataModel = MainDataModel(
+                        Data(
+                        roomsFromDb.map { roomModelRealmToListString(it)},
+                        camerasFromDb.map { cameraModelRealmToCamera(it)}
+                        ),
+                        true)
                     _cameras.value = Resource.Success(dataModel)
                 } else {
                     refreshCameras()
@@ -71,7 +79,6 @@ class MainViewModel : ViewModel() {
     private fun loadDoors() {
         viewModelScope.launch(Dispatchers.IO) {
             _doors.value = Resource.Loading()
-
             try {
                 val doorsFromDb = realm.getDoors().first()
                 if (doorsFromDb.isNotEmpty()) {
@@ -91,9 +98,17 @@ class MainViewModel : ViewModel() {
             try {
                 val response = service.getCameras()
                 if (response.success) {
-                    realm.deleteAllCameras()
-                    response.data.cameras.forEach { camera ->
-                        realm.insertCamera(cameraToCameraModelRealm(camera))
+                    realm.apply {
+                        deleteAllCameras()
+                        deleteAllRoom()
+                    }
+                    response.data.apply {
+                        cameras.forEach { camera ->
+                            realm.insertCamera(cameraToCameraModelRealm(camera))
+                        }
+                        room.forEach { room ->
+                            realm.insertRoom(roomToRoomModelRealm(room))
+                        }
                     }
                     _cameras.value = Resource.Success(response)
                 } else {
@@ -130,6 +145,7 @@ class MainViewModel : ViewModel() {
 
     private fun cameraToCameraModelRealm(camera: Camera): CameraModelRealm {
         return CameraModelRealm().apply {
+            id = camera.id
             name = camera.name
             rec = camera.rec
             favorites = camera.favorites
@@ -138,8 +154,15 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    private fun roomToRoomModelRealm(room: String): RoomModelRealm {
+        return RoomModelRealm().apply {
+            this.room = room
+        }
+    }
+
     private fun doorsToDoorsModelRealm(dataX: DataX): DoorsModelRealm {
         return DoorsModelRealm().apply {
+            id = dataX.id
             name = dataX.name
             favorites = dataX.favorites
             room = dataX.room ?: "no_room"
@@ -149,7 +172,7 @@ class MainViewModel : ViewModel() {
     private fun cameraModelRealmToCamera(cameraModelRealm: CameraModelRealm): Camera {
         return Camera(
             favorites = cameraModelRealm.favorites,
-            id = -1,
+            id = cameraModelRealm.id,
             name = cameraModelRealm.name,
             rec = cameraModelRealm.rec,
             room = cameraModelRealm.room,
@@ -157,13 +180,45 @@ class MainViewModel : ViewModel() {
         )
     }
 
+    private fun roomModelRealmToListString(roomModelRealm: RoomModelRealm): String {
+        return roomModelRealm.room
+    }
+
     private fun doorsModelRealmToDataX(doorsModelRealm: DoorsModelRealm): DataX {
         return DataX(
             favorites = doorsModelRealm.favorites,
-            id = -1,
+            id = doorsModelRealm.id,
             name = doorsModelRealm.name,
             room = doorsModelRealm.room,
             snapshot = doorsModelRealm.snapshot
         )
+    }
+
+    // Update Camera
+    fun updateCameraInDb(camera: Camera, newFav: Boolean) {
+        val cameraModelRealm = cameraToCameraModelRealm(camera)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                realm.updateCamera(cameraModelRealm, newFav)
+                loadCameras()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error: ${e.message}")
+            }
+        }
+    }
+
+    // Update Door
+    fun updateDoorInDb(door: DataX, newName: String) {
+        val doorModelRealm = doorsToDoorsModelRealm(door)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                realm.updateDoor(doorModelRealm, newName)
+                loadDoors()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error: ${e.message}")
+            }
+        }
     }
 }
